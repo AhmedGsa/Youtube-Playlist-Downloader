@@ -1,6 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import youtubeDl from 'youtube-dl-exec'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -52,7 +56,26 @@ app.whenReady().then(() => {
   })
 
   // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on('download', (event, arg) => {
+    try {
+      console.log(arg);
+      // save the file in the downloads folder
+      const dest = path.join(os.homedir(), 'youtube-downloader');
+      // Create directory if it doesn't exist
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest);
+      }
+      youtubeDl(arg, {
+        format: 'mp4',
+        output: path.join(dest, '%(title)s.%(ext)s'),
+      }).then((output) => {
+        console.log('done');
+        console.log(output);
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  });
 
   createWindow()
 
