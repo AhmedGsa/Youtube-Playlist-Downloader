@@ -4,7 +4,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: hidden scroll;
   /* Youtube gradient */
   background: linear-gradient(135deg, #ff0000, #c4302b, #282828);
   background-size: cover;

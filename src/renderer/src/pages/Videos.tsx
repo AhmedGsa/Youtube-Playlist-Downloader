@@ -11,6 +11,7 @@ export default function Videos(): JSX.Element {
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(false);
     const [done, setDone] = useState(false);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         window.electron.ipcRenderer.on('preview-videos', (event, arg) => {
@@ -38,6 +39,7 @@ export default function Videos(): JSX.Element {
         if(downloading) {
             window.electron.ipcRenderer.send('cancel-download');
             setDownloading(false);
+            setError(true);
         } else {
             navigate('/');
         }
@@ -55,8 +57,8 @@ export default function Videos(): JSX.Element {
             {videos.map((video, index) => <Video key={index} title={video.snippet.title} imgUrl={video.snippet.thumbnails.default.url} />)}
             </ul>
             <div className={classes.btns}>
-                {!downloading && !done && <button className='btn' disabled={loading} onClick={handleDownload}>Download</button>}
-                {!done && <button className='btn' onClick={cancelDownload}>Cancel</button>}
+                {!downloading && !done && !error && <button className='btn' disabled={loading} onClick={handleDownload}>Download</button>}
+                {!done && !error && <button className='btn' onClick={cancelDownload}>Cancel</button>}
             </div>
             {downloading && <div>
                 <h2>Downloading...</h2>
@@ -65,6 +67,10 @@ export default function Videos(): JSX.Element {
             </div>}
             {done && <div className={classes.btns}>
                 <button className='btn' onClick={openDownloadFolder}>Open downloads folder</button>
+                <button className='btn' onClick={() => navigate('/')}>Download another</button>
+            </div>}
+            {error && <div className={classes.cancel}>
+                <h2>Download cancelled</h2>
                 <button className='btn' onClick={() => navigate('/')}>Download another</button>
             </div>}
         </div>

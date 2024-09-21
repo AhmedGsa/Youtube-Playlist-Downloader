@@ -8,6 +8,7 @@ import icon from '../../resources/icon.png?asset'
 import { google } from 'googleapis'
 import dotenv from 'dotenv'
 import youtubeDl from 'youtube-dl-exec'
+import terminate from 'terminate'
 dotenv.config();
 
 const youtube = google.youtube({
@@ -63,6 +64,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  const downloadProcesses = new Map();
+
   // IPC test
   ipcMain.on('get-videos', async (event, arg) => {
     if(arg.includes('list=')) {
@@ -113,6 +116,7 @@ app.whenReady().then(() => {
           }, {
               stdio: ['ignore', 'pipe', 'pipe'],
           });
+          downloadProcesses.set(video.snippet.title, promise);
           promise.stdout?.on('data', (data) => {
             const output = data.toString();
             const progressMatch = output.match(/\[download\] +(\d+\.\d+)%/);
@@ -127,6 +131,12 @@ app.whenReady().then(() => {
               event.sender.send('download-progress', { percent, videosDone });
             }
           });
+          // handle cancel download
+          ipcMain.on('cancel-download', () => {
+            terminate(promise?.pid as number);
+            reject('Download canceled');
+          });
+          
           promise.on('close', () => {
             resolve(true);
           });
@@ -147,10 +157,6 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error(error);
     }
-  });
-
-  ipcMain.on('cancel-download', () => {
-    // cancel the download
   });
 
   ipcMain.on('open-download-folder', () => {
