@@ -1,13 +1,13 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import youtubeDl from 'youtube-dl-exec'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import icon from '../../resources/icon.png?asset'
 import { google } from 'googleapis'
 import dotenv from 'dotenv'
+import youtubeDl from 'youtube-dl-exec'
 dotenv.config();
 
 const youtube = google.youtube({
@@ -75,22 +75,38 @@ app.whenReady().then(() => {
     event.sender.send('preview-videos', res.data.items);
   })
 
-  ipcMain.on('download', (event, arg) => {
+  ipcMain.on('download', async (event, arg) => {
     try {
-      console.log(arg);
+      //const videoIds = arg.map((video: any) => video.snippet.resourceId.videoId);
       // save the file in the downloads folder
       const dest = path.join(os.homedir(), 'youtube-downloader');
       // Create directory if it doesn't exist
       if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest);
       }
-      youtubeDl(arg, {
-        format: 'mp4',
-        output: path.join(dest, '%(title)s.%(ext)s'),
-      }).then((output) => {
-        console.log('done');
-        console.log(output);
-      });
+      let videosDone = 0;
+      for(const video of arg) {
+        const promise = youtubeDl.exec(`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`, {
+          format: 'mp4',
+          output: path.join(dest, '%(title)s.%(ext)s')
+        }, {
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        promise.stdout?.on('data', (data) => {
+          const output = data.toString();
+          const progressMatch = output.match(/\[download\] +(\d+\.\d+)%/);
+  
+          if (progressMatch) {
+            const percent = parseFloat(progressMatch[1]);
+            if (percent === 100) {
+              console.log(percent);
+              
+              videosDone++;
+            }
+            event.sender.send('download-progress', { percent, videosDone });
+          }
+        });
+      }
     } catch (error) {
       console.error(error);
     }

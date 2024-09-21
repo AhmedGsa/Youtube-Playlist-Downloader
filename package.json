@@ -26,6 +26,7 @@
     "dotenv": "^16.4.5",
     "electron-updater": "^6.1.7",
     "googleapis": "^144.0.0",
+    "progress-estimator": "^0.3.1",
     "react-router-dom": "^6.26.2",
     "youtube-dl-exec": "^3.0.9"
   },
