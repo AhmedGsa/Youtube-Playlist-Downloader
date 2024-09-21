@@ -6,6 +6,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import icon from '../../resources/icon.png?asset'
+import { google } from 'googleapis'
+import dotenv from 'dotenv'
+dotenv.config();
+
+const youtube = google.youtube({
+  version: 'v3',
+  auth: process.env.YOUTUBE_API_KEY,
+});
 
 function createWindow(): void {
   // Create the browser window.
@@ -56,6 +64,17 @@ app.whenReady().then(() => {
   })
 
   // IPC test
+  ipcMain.on('get-videos', async (event, arg) => {
+    const playlistId = arg.split('list=')[1];
+    // get the video info
+    const res = await youtube.playlistItems.list({
+      part: ['snippet'],
+      playlistId: playlistId,
+      maxResults: 100,
+    });
+    event.sender.send('preview-videos', res.data.items);
+  })
+
   ipcMain.on('download', (event, arg) => {
     try {
       console.log(arg);
