@@ -132,16 +132,30 @@ app.whenReady().then(() => {
           });
         })
       }
+      event.sender.send('download-done');
       // show a dialog when the download is done
       dialog.showMessageBox({
         type: 'info',
         title: 'Download complete',
         message: 'All videos have been downloaded',
         buttons: ['Ok', 'Open folder'],
+      }).then((res) => {
+        if(res.response === 1) {
+          shell.openPath(dest);
+        }
       });
     } catch (error) {
       console.error(error);
     }
+  });
+
+  ipcMain.on('cancel-download', () => {
+    // cancel the download
+  });
+
+  ipcMain.on('open-download-folder', () => {
+    // open the download folder
+    shell.openPath(path.join(os.homedir(), 'youtube-downloader'));
   });
 
   createWindow()
