@@ -9,3 +9,8 @@
     align-items: center;
     gap: 1rem;
 }
+
+.btns {
+    display: flex;
+    gap: 1rem;
+}

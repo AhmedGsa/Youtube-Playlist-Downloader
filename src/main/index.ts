@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import fs from 'fs'
@@ -65,15 +65,24 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('get-videos', async (event, arg) => {
-    const playlistId = arg.split('list=')[1];
-    // get the video info
-    const res = await youtube.playlistItems.list({
+    if(arg.includes('list=')) {
+      const playlistId = arg.split('list=')[1];
+      // get the video info
+      const res = await youtube.playlistItems.list({
+        part: ['snippet'],
+        playlistId: playlistId,
+        maxResults: 100,
+      });
+      event.sender.send('preview-videos', res.data.items);
+      return;
+    }
+    const videoId = arg.split('v=')[1];
+    const res = await youtube.videos.list({
       part: ['snippet'],
-      playlistId: playlistId,
-      maxResults: 100,
+      id: [videoId],
     });
     event.sender.send('preview-videos', res.data.items);
-  })
+  });
 
   ipcMain.on('download', async (event, arg) => {
     try {
@@ -86,27 +95,39 @@ app.whenReady().then(() => {
       }
       let videosDone = 0;
       for(const video of arg) {
-        const promise = youtubeDl.exec(`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`, {
-          format: 'mp4',
-          output: path.join(dest, '%(title)s.%(ext)s')
-        }, {
-            stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        promise.stdout?.on('data', (data) => {
-          const output = data.toString();
-          const progressMatch = output.match(/\[download\] +(\d+\.\d+)%/);
-  
-          if (progressMatch) {
-            const percent = parseFloat(progressMatch[1]);
-            if (percent === 100) {
-              console.log(percent);
-              
-              videosDone++;
+        await new Promise((resolve, reject) => {
+          const promise = youtubeDl.exec(`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`, {
+            format: 'mp4',
+            output: path.join(dest, '%(title)s.%(ext)s')
+          }, {
+              stdio: ['ignore', 'pipe', 'pipe'],
+          });
+          promise.stdout?.on('data', (data) => {
+            const output = data.toString();
+            const progressMatch = output.match(/\[download\] +(\d+\.\d+)%/);
+    
+            if (progressMatch) {
+              const percent = parseFloat(progressMatch[1]);
+              if (percent === 100) {
+                console.log(percent);
+                
+                videosDone++;
+              }
+              event.sender.send('download-progress', { percent, videosDone });
             }
-            event.sender.send('download-progress', { percent, videosDone });
-          }
-        });
+          });
+          promise.on('close', () => {
+            resolve(true);
+          });
+        })
       }
+      // show a dialog when the download is done
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Download complete',
+        message: 'All videos have been downloaded',
+        buttons: ['Ok', 'Open folder'],
+      });
     } catch (error) {
       console.error(error);
     }
