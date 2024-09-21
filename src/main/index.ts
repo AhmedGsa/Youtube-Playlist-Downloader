@@ -66,7 +66,7 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('get-videos', async (event, arg) => {
     if(arg.includes('list=')) {
-      const playlistId = arg.split('list=')[1];
+      const playlistId = arg.split('list=')[1].split('&')[0];
       // get the video info
       const res = await youtube.playlistItems.list({
         part: ['snippet'],
@@ -86,9 +86,20 @@ app.whenReady().then(() => {
 
   ipcMain.on('download', async (event, arg) => {
     try {
-      //const videoIds = arg.map((video: any) => video.snippet.resourceId.videoId);
       // save the file in the downloads folder
-      const dest = path.join(os.homedir(), 'youtube-downloader');
+      let dest = path.join(os.homedir(), 'youtube-downloader');
+      const video = arg[0];
+      // check if it has a playlist id
+      if(video.snippet.playlistId) {
+        // get playlist name
+        const playlist = await youtube.playlists.list({
+          part: ['snippet'],
+          id: [video.snippet.playlistId],
+        });
+        const playlistName = playlist.data.items?.[0].snippet?.title as string;
+        // Update the destination
+        dest = path.join(os.homedir(), 'youtube-downloader', playlistName);
+      }
       // Create directory if it doesn't exist
       if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest);
@@ -96,7 +107,7 @@ app.whenReady().then(() => {
       let videosDone = 0;
       for(const video of arg) {
         await new Promise((resolve, reject) => {
-          const promise = youtubeDl.exec(`https://www.youtube.com/watch?v=${video.snippet.resourceId.videoId}`, {
+          const promise = youtubeDl.exec(`https://www.youtube.com/watch?v=${video.snippet.resourceId?.videoId || video.id}`, {
             format: 'mp4',
             output: path.join(dest, '%(title)s.%(ext)s')
           }, {

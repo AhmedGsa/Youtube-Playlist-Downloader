@@ -26,6 +26,8 @@ export default function Videos(): JSX.Element {
         window.electron.ipcRenderer.send('download', videos);
         setDownloading(true);
     }
+    console.log(videos);
+    
 
     const cancelDownload = () => {
         if(downloading) {
