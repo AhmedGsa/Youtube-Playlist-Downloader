@@ -14,11 +14,13 @@ export default function Videos(): JSX.Element {
     const [error, setError] = useState(false);
 
     useEffect(() => {
-        window.electron.ipcRenderer.on('preview-videos', (event, arg) => {
+        window.electron.ipcRenderer.on('preview-videos', (_event, arg) => {
             setVideos(arg);
             setLoading(false);
         });
-        window.electron.ipcRenderer.on('download-progress', (event, arg) => {
+        window.electron.ipcRenderer.on('download-progress', (_event, arg) => {
+            console.log('percent', arg.percent);
+            
             setProgress(arg.percent);
             setIndex(arg.videosDone);
         });
@@ -32,9 +34,7 @@ export default function Videos(): JSX.Element {
         window.electron.ipcRenderer.send('download', videos);
         setDownloading(true);
     }
-    console.log(videos);
     
-
     const cancelDownload = () => {
         if(downloading) {
             window.electron.ipcRenderer.send('cancel-download');

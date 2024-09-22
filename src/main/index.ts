@@ -64,8 +64,6 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const downloadProcesses = new Map();
-
   // IPC test
   ipcMain.on('get-videos', async (event, arg) => {
     if(arg.includes('list=')) {
@@ -79,7 +77,7 @@ app.whenReady().then(() => {
       event.sender.send('preview-videos', res.data.items);
       return;
     }
-    const videoId = arg.split('v=')[1];
+    const videoId = arg.split('v=')[1].split('&')[0];
     const res = await youtube.videos.list({
       part: ['snippet'],
       id: [videoId],
@@ -112,11 +110,12 @@ app.whenReady().then(() => {
         await new Promise((resolve, reject) => {
           const promise = youtubeDl.exec(`https://www.youtube.com/watch?v=${video.snippet.resourceId?.videoId || video.id}`, {
             format: 'mp4',
-            output: path.join(dest, '%(title)s.%(ext)s')
+            output: path.join(dest, '%(title)s.%(ext)s'),
           }, {
               stdio: ['ignore', 'pipe', 'pipe'],
           });
-          downloadProcesses.set(video.snippet.title, promise);
+          const pid = promise.pid;
+          event.sender.send('download-started', pid);
           promise.stdout?.on('data', (data) => {
             const output = data.toString();
             const progressMatch = output.match(/\[download\] +(\d+\.\d+)%/);
@@ -124,21 +123,22 @@ app.whenReady().then(() => {
             if (progressMatch) {
               const percent = parseFloat(progressMatch[1]);
               if (percent === 100) {
-                console.log(percent);
-                
                 videosDone++;
               }
               event.sender.send('download-progress', { percent, videosDone });
             }
           });
           // handle cancel download
-          ipcMain.on('cancel-download', () => {
-            terminate(promise?.pid as number);
+          const cancelHandler = () => {
+            terminate(pid as number);
             reject('Download canceled');
-          });
+          }
+
+          ipcMain.on('cancel-download', cancelHandler);
           
-          promise.on('close', () => {
-            resolve(true);
+          promise.on('close', (code, signal) => {
+            ipcMain.removeListener('cancel-download', cancelHandler); // Clean up listener
+            resolve({ code, signal });
           });
         })
       }
@@ -156,6 +156,7 @@ app.whenReady().then(() => {
       });
     } catch (error) {
       console.error(error);
+      event.sender.send('download-error', error);
     }
   });
 
