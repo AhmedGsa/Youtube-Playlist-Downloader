@@ -1,6 +1,10 @@
-# youtube-playlist-downloader
+# Youtube Playlist Downloader
 
 An Electron application with React and TypeScript
+
+## Description
+
+This application allows you to download all videos or playlists from youtube.
 
 ## Recommended IDE Setup
 
@@ -32,3 +36,10 @@ $ npm run build:mac
 # For Linux
 $ npm run build:linux
 ```
+
+## Demo
+
+![Home](./screenshots/1.png)
+![Download](./screenshots/2.png)
+![Download](./screenshots/3.png)
+![Done](./screenshots/4.png)
