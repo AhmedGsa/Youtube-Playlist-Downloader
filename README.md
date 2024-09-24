@@ -43,3 +43,7 @@ $ npm run build:linux
 ![Download](./screenshots/2.png)
 ![Download](./screenshots/3.png)
 ![Done](./screenshots/4.png)
+
+## Download
+
+- [Windows](https://drive.google.com/drive/folders/16iJ0ItFVnaARihdphxVQ_triMp8iQkLe?usp=sharing)

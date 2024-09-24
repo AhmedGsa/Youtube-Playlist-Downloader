@@ -11,19 +11,19 @@ export default defineConfig({
     },
     plugins: [externalizeDepsPlugin()],
     build: {
-      outDir: 'out/main',
+      outDir: 'dist/main',
     }
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      outDir: 'out/preload'
+      outDir: 'dist/preload'
     }
   },
   renderer: {
     plugins: [react()],
     build: {
-      outDir: 'out/renderer',
+      outDir: 'dist/renderer',
     },
     resolve: {
       alias: {
